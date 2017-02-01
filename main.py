@@ -2,6 +2,7 @@ import pymysql, production_order, datetime, prettytable
 
 M = 12
 A = 10
+PRODUCTS = ("miranti", "alenti")
 
 """Connection with db"""
 try:
@@ -16,7 +17,7 @@ except pymysql.Warning:
 def product_name():
     """Check, is name of product fine"""
     name = input("Name of product (mirnati/alenti): ").lower()
-    while name !="miranti" and name != "alenti":
+    while name not in PRODUCTS:
         name = input("Name of product (mirnati/alenti): ").lower()
     return name
 
@@ -39,7 +40,6 @@ def valid_digit(text):
     else:
         return value
     
-
 def add_po(): 
     statement = "INSERT INTO production_plan VALUES (NULL, 'miranti','0000-00-00', '0000-00-00',0)"
     cur.execute(statement)
@@ -71,16 +71,7 @@ def show_po():
 
 def utilization():
     """Calculation of production capacity utilization"""
-    miranti, alenti = 0,0
-    date = valid_date()
-    statement = "SELECT * FROM production_plan WHERE productiondate = '%s'" %(date)
-    cur.execute(statement)
-    table = cur.fetchall()
-    for i in range(0, len(table)):
-        if table[i][1] == "miranti":
-            miranti = miranti + table[i][4]
-        elif table[i][1] == "alenti":
-            alenti = alenti + table[i][4]
+    miranti, alenti = check_dayily_qty()
     print("Utilization of production capacity for MIRANTI line: ", round(miranti/M*100), "%")
     print("Utilization of production capacity for ALENTI line: ", round(alenti/A*100), "%")
 
@@ -96,10 +87,39 @@ def delete_po():
             cur.execute(statement)
             mydb.commit()
             print("Production order", po_number, "has been removed")
+
+def check_dayily_qty():
+    miranti, alenti = 0,0
+    date = valid_date()
+    statement = "SELECT * FROM production_plan WHERE productiondate = '%s'" %(date)
+    cur.execute(statement)
+    table = cur.fetchall()
+    for i in range(0, len(table)):
+        if table[i][1] == "miranti":
+            miranti = miranti + table[i][4]
+        elif table[i][1] == "alenti":
+            alenti = alenti + table[i][4]
+    return miranti, alenti
+
+def get_BOM(name, qty):
+    qty = qty
+    product = name
+    statement = "SELECT id, partid, qty * '%s' FROM %s" %(qty, product)
+    cur.execute(statement)
+    bom = cur.fetchall()
+    x = prettytable.PrettyTable()
+    x.field_names = ["Id", "Item", "Quantity"]
+    for i in range(0, len(bom)):
+        x.add_row([bom[i][0], bom[i][1], bom[i][2]])
+    print("Items need on production for %s:\n" %(str(product)))
+    print(x.get_string())
     
 def items_warehouse():
     """Check and show table with items need on production line"""
-    date = valid_date()
+    miranti, alenti = check_dayily_qty()
+    get_BOM("miranti",miranti)
+    get_BOM("alenti", alenti)
     
     
-utilization()
+items_warehouse()
+    
