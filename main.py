@@ -50,7 +50,7 @@ def add_po():
     ponumber = ponumber[0]
     product = product_name()
     production_date = valid_date()
-    qty = valid_digit("number")
+    qty = valid_digit("quantity")
     new_po = production_order.PO(ponumber, product, production_date, qty)
     statement = "UPDATE production_plan SET product = '%s', orderdate = '%s', productiondate = '%s', qty = '%s' WHERE ID = '%s'" %(new_po.product, new_po.order_date, new_po.production_date, new_po.qty, new_po.ponumber)
     cur.execute(statement)
@@ -62,6 +62,11 @@ def show_po():
     statement = "SELECT * FROM production_plan WHERE productiondate = '%s'" %(date)
     cur.execute(statement)
     table = cur.fetchall()
+    print_table(table)
+    return table
+
+def print_table(table):
+    table= table
     x = prettytable.PrettyTable()
     x.field_names = ["PO number", "Product", "Creating date", "Production date", "Quantity"]
     for i in range(0, len(table)):
@@ -69,20 +74,12 @@ def show_po():
     print(x.get_string())
     return table
 
-def utilization():
-    """Calculation of production capacity utilization"""
-    miranti, alenti = check_dayily_qty()
-    print("Utilization of production capacity for MIRANTI line: ", round(miranti/M*100), "%")
-    print("Utilization of production capacity for ALENTI line: ", round(alenti/A*100), "%")
-
 def delete_po():
     table = show_po()
-    print(table)
-    po_number = valid_digit("qunatity")
+    po_number = valid_digit("po number")
     print(po_number)
     for i in range(0, len(table)):
         if table[i][0] == int(po_number):
-            print('jest')
             statement = "DELETE FROM production_plan WHERE ID = '%s'" %(po_number)
             cur.execute(statement)
             mydb.commit()
@@ -94,6 +91,7 @@ def check_dayily_qty():
     statement = "SELECT * FROM production_plan WHERE productiondate = '%s'" %(date)
     cur.execute(statement)
     table = cur.fetchall()
+    print_table(table)
     for i in range(0, len(table)):
         if table[i][1] == "miranti":
             miranti = miranti + table[i][4]
@@ -101,6 +99,12 @@ def check_dayily_qty():
             alenti = alenti + table[i][4]
     return miranti, alenti
 
+def utilization():
+    """Calculation of production capacity utilization"""
+    miranti, alenti = check_dayily_qty()
+    print("Utilization of production capacity for MIRANTI line: ", round(miranti/M*100), "%")
+    print("Utilization of production capacity for ALENTI line: ", round(alenti/A*100), "%")
+    
 def get_BOM(name, qty):
     qty = qty
     product = name
@@ -111,7 +115,7 @@ def get_BOM(name, qty):
     x.field_names = ["Id", "Item", "Quantity"]
     for i in range(0, len(bom)):
         x.add_row([bom[i][0], bom[i][1], bom[i][2]])
-    print("Items need on production for %s:\n" %(str(product)))
+    print("\nItems need on production for %s:\n" %(str(product)))
     print(x.get_string())
     
 def items_warehouse():
@@ -120,6 +124,40 @@ def items_warehouse():
     get_BOM("miranti",miranti)
     get_BOM("alenti", alenti)
     
+def full_list():
+    """Create list of all items need on production line for chosen day"""
+    statement = "SELECT "
     
-items_warehouse()
+def menu():
+    print("""
+    Menu:\n
+    1 - New PO
+    2 - Delete PO
+    3 - Check production plan  
+    4 - List of items need on produsction
+    5 - Create list for warehouse
+    6 - Close
     
+    """)
+
+    menu_choice = int(input("Insert option: "))
+    return menu_choice
+
+def main():
+    menu_choice = 0
+    while menu_choice != 6:
+        menu_choice = menu()   
+        if menu_choice == 1:
+            add_po()         
+        elif menu_choice == 2:
+            delete_po()
+        elif menu_choice == 3:
+            utilization()
+        elif menu_choice == 4:
+            items_warehouse()
+        elif menu_choice == 5:
+            full_list()
+        else:
+            print("END")
+
+main()
