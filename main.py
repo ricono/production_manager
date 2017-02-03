@@ -126,7 +126,17 @@ def items_warehouse():
     
 def full_list():
     """Create list of all items need on production line for chosen day"""
-    statement = "SELECT "
+    miranti, alenti = check_dayily_qty()
+    statement = "SELECT partid, sum(quantity) FROM (SELECT partid, qty*'%s' as quantity FROM miranti UNION ALL SELECT partid, qty*'%s'  as quantity FROM alenti) as subq GROUP BY partid ORDER BY partid" %(miranti, alenti)
+    cur.execute(statement)
+    daily_list = cur.fetchall()
+    x = prettytable.PrettyTable()
+    x.field_names = ["Id", "Item", "Quantity"]
+    for i in range(0, len(daily_list)):
+        x.add_row([i+1, daily_list[i][0], daily_list[i][1]])
+    print("\nItems need on production for chosen day:\n")
+    print(x.get_string())
+    
     
 def menu():
     print("""
@@ -157,7 +167,9 @@ def main():
             items_warehouse()
         elif menu_choice == 5:
             full_list()
-        else:
+        elif menu_choice == 6:
             print("END")
+        else:
+            print("Wrong number")
 
 main()
